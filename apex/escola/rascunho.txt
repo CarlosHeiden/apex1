@@ -1,0 +1,33 @@
+from django.db import models
+
+class Aluno(models.Model):
+    nome = models.CharField(max_length=30)
+    rg = models.CharField(max_length=9)
+    cpf = models.CharField(max_length=11)
+    data_nascimento = models.DateField()
+
+    def __str__(self):
+        return f'{self.nome}'
+    
+
+from rest_framework import serializers
+from escola.models import Aluno, Curso
+
+class AlunosSerialiazer(serializers.ModelSerializer):
+    class Meta:
+        model= Aluno
+        fields = ['id', 'nome', 'rg', 'cpf', 'data_nascimento']
+
+
+from django.contrib import admin
+from django.urls import path
+from escola.views import alunos
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('alunos/', alunos)
+]
+
+# views.py
+def alunos(request):
+    ...
