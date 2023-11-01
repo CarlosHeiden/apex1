@@ -1,33 +1,91 @@
 from django.db import models
-
-class Aluno(models.Model):
-    nome = models.CharField(max_length=30)
-    rg = models.CharField(max_length=9)
-    cpf = models.CharField(max_length=11)
-    data_nascimento = models.DateField()
-
-    def __str__(self):
-        return f'{self.nome}'
+        from django.http import JsonResponse
+        from django.views.decorators.csrf import csrf_exempt
+        import json
+        
+        class Aluno(models.Model):
+            nome = models.CharField(max_length=30)
+            rg = models.CharField(max_length=9)
+            cpf = models.CharField(max_length=11)
+            data_nascimento = models.DateField()
+        
+            def __str__(self):
+                return f'{self.nome}'
+            
+        
+        class Curso(models.Model):
+            nivel = (
+            ('B', 'Basico'),
+            ('I', 'Intermediario'),
+            ('A', 'Avancado')
+            )
+        
+            codigo_curso = models.CharField(max_length=9)
+            descricao = models.CharField(max_length=11)
+            nivel = models.CharField(max_length=1, choices=nivel, blank=False, null=False)
+        
+            def __str__(self):
+                return f'{self.descricao}'
+            
+        class Notas(models.Model):
+            aluno = models.ForeignKey(Aluno, on_delete=models.CASCADE)
+            curso = models.ForeignKey(Curso, on_delete=models.CASCADE)
+            nome_aluno = models.CharField(max_length=100)
+            descricao_curso = models.CharField(max_length=100)
+            nota = models.DecimalField(max_digits=5, decimal_places=2)
+        
+            class Meta:
+                unique_together = ("aluno", "curso")
+        
+            def __str__(self):
+                return f'{self.nome_aluno}, {self.descricao_curso}'
+        
+            def save(self, *args, **kwargs):
+                if self.nota > 10 or self.nota < 0:
+                    raise ValueError("Nota inválida")
+                if not isinstance(self.nota, float):
+                    raise ValueError("Nota deve ser um número decimal")
+                if not isinstance(self.nota, int):
+                    raise ValueError("Nota deve ser um número inteiro")
+                super(Notas, self).save(*args, **kwargs)
+ 
+csrf_exempt
+def receber_notas(request):
+    if request.method == 'POST':
+        dados = json.loads(request.body)
+        if isinstance(dados, dict):
+            try:
+                nota = float(dados['nota'])
+                id_aluno = int(dados['aluno_id'])
+                id_curso = str(dados['curso_id']).upper()
+                descricao_curso = str(dados['descricao_curso'])
+                nome_aluno = str(dados['nome_aluno'])
+                avaliacao = Notas(nota=nota, aluno_id=id_aluno, curso_id=id_curso, descricao_curso=descricao_curso, nome_aluno=nome_aluno)
+                avaliacao.save()
+                return JsonResponse('Dados cadastrados com sucesso!!')
+            except ValueError as e:
+                return JsonResponse({'erro': str(e)}, status=400)
+            except Exception as e:
+                print(e)
+                return JsonResponse({'erro': 'Erro ao salvar o registro'}, status=400)
+        else:
+            return JsonResponse({'erro': 'Dados inválidos'}, status=400)
+    else:
+        return JsonResponse({'mensagem': 'Método POST necessário.'}, status=405)
     
+@csrf_exempt
+def listar_media_notas_alunos(request):
+    if request.method == 'GET':
+        notas = Notas.objects.all()
+        media_notas = {}
+        for nota in notas:
+            if nota.aluno.nome in media_notas:
+                media_notas[nota.aluno.nome] += nota.nota
+            else:
+                media_notas[nota.aluno.nome] = nota.nota
+        media_notas = {k: round(v / len(notas), 2) for k, v in media_notas.items()}
+        media_notas = dict(sorted(media_notas.items(), key=lambda item: item[1], reverse=True))
+        return JsonResponse(media_notas)
+    else:
+        return JsonResponse({'mensagem': 'Método GET necessário.'}, status=405)
 
-from rest_framework import serializers
-from escola.models import Aluno, Curso
-
-class AlunosSerialiazer(serializers.ModelSerializer):
-    class Meta:
-        model= Aluno
-        fields = ['id', 'nome', 'rg', 'cpf', 'data_nascimento']
-
-
-from django.contrib import admin
-from django.urls import path
-from escola.views import alunos
-
-urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('alunos/', alunos)
-]
-
-# views.py
-def alunos(request):
-    ...

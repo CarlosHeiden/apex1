@@ -15,8 +15,9 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
-from escola.views import alunos, cursos, alunos2
+from django.urls import path, include
+from escola.views import AlunosViewSets,CursosViewSets, NotasViewSet, receber_notas, listar_media_notas_alunos
+from rest_framework import routers
 
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 from rest_framework_simplejwt.views import (
@@ -24,11 +25,17 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
 )
 
+router = routers.DefaultRouter()
+router.register('alunos', AlunosViewSets, basename = 'aluno')
+router.register('cursos', CursosViewSets, basename = 'curso')
+router.register('notas', NotasViewSet, basename = 'notas')
+#router.register('receber_notas', receber_notas.as_view, basename='receber_notas')
+
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/alunos/', alunos),
-    path('api/cursos/', cursos),
-    path('api/alunos2/', alunos2),
+    path('api/', include(router.urls)),
+    path('api/receber_notas/', receber_notas, name='receber_notas'),
+    path('api/listar_media_alunos/', listar_media_notas_alunos, name='listar_media_alunos'),
     #autenticaçao
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
