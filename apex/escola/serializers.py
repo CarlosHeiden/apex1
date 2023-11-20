@@ -1,9 +1,10 @@
 from rest_framework import serializers
 from escola.models import Aluno, Curso, Notas
 
+
 class AlunosSerialiazer(serializers.ModelSerializer):
     class Meta:
-        model= Aluno
+        model = Aluno
         fields = ['id', 'nome', 'rg', 'cpf', 'data_nascimento']
 
 
